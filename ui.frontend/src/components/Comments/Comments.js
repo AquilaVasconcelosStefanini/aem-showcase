@@ -1,7 +1,6 @@
-
 import React, { Component } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faHeart, faComment, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import {faHeart, faUser, faComment} from '@fortawesome/free-solid-svg-icons';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; 
 
@@ -15,20 +14,21 @@ class Comments extends Component {
       commentText: '',
       maxCharacters: 100,
       likes: [],
+      user: null,
+      charactersRemaining: 0,
     };
   }
 
-  async componentDidMount() {
+  async componentDidMount() { // realizar inicializações que dependem do DOM - milena
     try {
-      const comments = await this.getComments();
-      const likes = Array(comments.length).fill(0);
-      this.setState({ comments, likes });
+      await this.getComments();
+      await this.getUserInfo();
     } catch (error) {
       console.error(error);
     }
   }
 
-  getCsrfToken = async () => {
+  getCsrfToken = async () => { // se precisar de token ainda , caso não precisa remove 'CSRF-Token': csrfToken, - milena
     const response = await fetch('/libs/granite/csrf/token.json');
     const json = await response.json();
     return json.token;
@@ -48,62 +48,113 @@ class Comments extends Component {
     }
 
     const comments = await response.json();
-    return comments;
+    this.setState({ comments });
   };
 
-  handleLikeClick = (index) => {
-    this.setState((prevState) => {
-      const updatedLikes = [...prevState.likes];
-      updatedLikes[index]++;
-      return { likes: updatedLikes };
+  handleCommentChange = (commentText) => { //evoluir:  esse contador 0/100 - milena
+    const charactersRemaining = Math.max(0, this.state.maxCharacters - commentText.length);
+    this.setState({ commentText, charactersRemaining });
+  };
+
+  handleCommentSubmit = async () => { //evoluir : se comentario estiver vazio, mostrar um alerta ou habilitar botão
+    const { commentText , user } = this.state;
+    const csrfToken = await this.getCsrfToken();
+    
+    const response = await fetch('/bin/showcase/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CSRF-Token': csrfToken,
+      },
+      body: JSON.stringify({
+        content: commentText,
+        created: new Date().toISOString(),
+        createdBy: user.name,
+        fullname: user.name, 
+        upvoteCount: 0,
+        userHasUpvoted: false,
+        likes: [] 
+      }),
     });
+  
+    if (response.ok) {
+      await this.getComments();
+      this.setState({ commentText: '' });
+    } else {
+      console.error('Erro, não obteve sucesso  para comentar');
+    }
   };
-
-  handleCommentChange = (value) => {
-    this.setState({ commentText: value });
-  };
+  
+  async getUserInfo() {
+    try {
+      const response = await fetch('/libs/granite/security/currentuser.json');
+      if (!response.ok) {
+        throw new Error('Erro, não conseguiu acessar informações do usuário');
+      }
+      const userData = await response.json();
+      this.setState({ user: userData }); 
+    } catch (error) {
+      console.error('Erro, não conseguiu acessar informações do usuário:', error);
+    }
+  }
 
   render() {
-    const { commentText, maxCharacters, likes } = this.state;
-    const charactersRemaining = maxCharacters - commentText.length;
+    const { commentText, maxCharacters, user , charactersRemaining} = this.state;
 
     return (
       <div className='comments-container'>
         <h3 className="">{this.props.commentTitle}</h3>
 
         <div className="comment-content">
+          <div className="comment-header">
+            {/* se não tiver user cadastrado no aem , retorna You */}
+            {user ? (
+              <>
+                <FontAwesomeIcon className="comment-user-icon" icon={faUser} />
+                <h4 className="comment-username">{user.name}</h4>
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon className="comment-user-icon" icon={faUser} />
+                <h4 className="comment-username">You</h4>
+              </>
+            )}
+          </div>
+
           <div className="comment-header-send">
-            <FontAwesomeIcon className="user-icon" icon={faUser} />
             <div className="comment-character-count">
               <ReactQuill
                 value={commentText}
-                onChange={this.handleCommentChange}
-                placeholder="Adicionar comentário..."
+                onChange={(value) => this.handleCommentChange(value)}
+                placeholder="Comentário..."
               />
-              <span className='comment-text-character'>{charactersRemaining}/{maxCharacters} caracteres restantes</span>
-
+              <span className='comment-text-character'>{charactersRemaining}/{maxCharacters}</span>
             </div>
           </div>
-          <button className='comment-btn-send' onClick={() => this.props.onSubmitComment(commentText)}><FontAwesomeIcon icon={faArrowDown} /></button>
+          <button className='comment-btn-send' onClick={() => this.handleCommentSubmit(commentText)}>
+            Enviar Comentário
+          </button>
         </div>
 
         <div>
           {this.props.commentTitle && (
             <>
               {this.state.comments.map((comment, index) => (
-                <div className="comment-content" key={index}>
+                <div className="comment-content" key={index} data={comment.created}>
                   <div className="commet-card-border">
                     <div className="comment-header">
-                      <FontAwesomeIcon className="user-icon" icon={faUser} />
-                      <h3 className="comment-username">user</h3>
+                      <FontAwesomeIcon className="comment-user-icon" icon={faUser} />
+                      <h4 className="comment-username">{comment.fullname}</h4>
                     </div>
                     <p className="comment-body">{comment.content}</p>
                   </div>
 
                   <div className="comment-actions">
-                    <button className="comment-bnt-transparent btn-reply"><FontAwesomeIcon icon={faComment} /></button>
-                    <button className="comment-bnt-transparent btn-like" onClick={() => this.handleLikeClick(index)}>
-                      {likes[index]} <FontAwesomeIcon icon={faHeart} />
+                    <button className="comment-bnt-transparent">
+                      <FontAwesomeIcon icon={faComment} />
+                    </button>
+                    <button className="comment-bnt-transparent">
+                      {comment.upvoteCount} <FontAwesomeIcon icon={faHeart} />
                     </button>
                   </div>
                 </div>
