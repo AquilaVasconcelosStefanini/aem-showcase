@@ -146,7 +146,7 @@ class Comments extends Component {
                       <FontAwesomeIcon className="comment-user-icon" icon={faUser} />
                       <h4 className="comment-username">{comment.fullname}</h4>
                     </div>
-                    <p className="comment-body">{comment.content}</p>
+                    <div className="comment-body" dangerouslySetInnerHTML={{ __html: comment.content }} />
                   </div>
 
                   <div className="comment-actions">
