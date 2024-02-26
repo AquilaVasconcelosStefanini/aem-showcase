@@ -68,6 +68,7 @@
 .comment-bnt-transparent {
   background-color: transparent;
   border-color: transparent;
+  cursor: pointer;
 }
 .comment-user-icon {
   font-size: 0.875rem;
@@ -92,6 +93,7 @@
   border-radius: 0.25rem;
   width: fit-content;
   margin-top: 1rem;
+  cursor: pointer;
 }
 
 h2,
