@@ -117,33 +117,10 @@ public class CommentServiceImpl implements CommentsService {
 
     @Override
     public DeleteMessage deleteComment(String id) {
-
         DeleteMessage deleteMessage = new DeleteMessage();
 
-        try (ResourceResolver resolver = getUserResourceResolver("admin", "admin")){
-    
-            Session session = resolver.adaptTo(Session.class);     
-
-            try {
-                Node commentNode = session.getNode("/content/aem-showcase/comments/" + id);
-                
-                commentNode.remove();
-                deleteMessage.setMessage("item deleted");
-                deleteMessage.setRemoved(true);
-            } catch (PathNotFoundException e) {
-                deleteMessage.setMessage("item not found");
-                deleteMessage.setRemoved(false);
-                logger.info("there was something wrong during get comments, the error is: {}", e);
-            }
-
-            session.save();
-            session.logout();
-            resolver.close();
-        } catch (Exception e) {
-            deleteMessage.setMessage("could not remove node");
-            deleteMessage.setRemoved(false);
-            logger.error("there was something wrong during get comment, the error is: {}", e);
-        }
+        deleteMessage.setMessage("could not remove node");
+        deleteMessage.setRemoved(false);
 
         return deleteMessage;
     }
@@ -257,41 +234,6 @@ public class CommentServiceImpl implements CommentsService {
     @Override
     public CommentPojo likeOrUnlinkComment(String commentId, String userId, SlingHttpServletRequest request) {
         CommentPojo comment = null;
-
-        if(userId == null || (userId != null && userId.isEmpty())) {
-            return comment;
-        }
-
-        try (ResourceResolver resolver = getUserResourceResolver("admin", "admin")){
-    
-            Session session = resolver.adaptTo(Session.class);     
-
-            try {
-                Node commentNode = session.getNode("/content/aem-showcase/comments/" + commentId);
-                comment = getCommentByNode(commentNode, request);
-
-                List<String> likes = comment.getLikes();
-
-                if(likes.contains(userId)) {
-                    likes.remove(userId);
-                    comment.setUserHasUpvoted(false);
-                } else {
-                    likes.add(userId);
-                    comment.setUserHasUpvoted(true);
-                }
-
-                String[] likesArray =  likes.stream().toArray(String[]::new);;
-                commentNode.setProperty(UPVOTE_LIST_PROP, likesArray);
-                session.save();
-            } catch (PathNotFoundException e) {
-                logger.info("there was something wrong during get comments, the error is: {}", e);
-            }
-
-            session.logout();
-            resolver.close();
-        } catch (Exception e) {
-            logger.error("there was something wrong during get comment, the error is: {}", e);
-        }
 
         return comment;
     }
