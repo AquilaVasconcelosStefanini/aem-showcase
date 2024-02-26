@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.adobe.granite.crypto.CryptoException;
 import com.adobe.granite.crypto.CryptoSupport;
+import com.aem.showcase.core.configuration.comments.services.CommentsConfigService;
 import com.aem.showcase.core.pojos.CreateMessage;
 import com.aem.showcase.core.pojos.DeleteMessage;
 import com.aem.showcase.core.pojos.comments.CommentPojo;
@@ -54,6 +55,9 @@ public class CommentServiceImpl implements CommentsService {
 
     @Reference
     private UserService userService;
+
+    @Reference
+    private CommentsConfigService commentsConfigService;
     
     protected static final String SERVICE_ID = "AEMShowCaseUserJCR";
 
@@ -75,7 +79,10 @@ public class CommentServiceImpl implements CommentsService {
     public CreateMessage createComment(CommentPojo commentPojo) {
         CreateMessage message = new CreateMessage();
 
-        try (ResourceResolver resolver = getUserResourceResolver("admin", "admin")){
+        String userName = commentsConfigService.getSessionUserName();
+        String userPass = commentsConfigService.getSessionUserPass();
+
+        try (ResourceResolver resolver = getUserResourceResolver(userName, userPass)){
     
             Session session = resolver.adaptTo(Session.class);
 
@@ -129,7 +136,10 @@ public class CommentServiceImpl implements CommentsService {
     public CommentPojo findById(String id, SlingHttpServletRequest request){
         CommentPojo comment = null;
 
-        try (ResourceResolver resolver = getUserResourceResolver("admin", "admin")){
+        String userName = commentsConfigService.getSessionUserName();
+        String userPass = commentsConfigService.getSessionUserPass();
+
+        try (ResourceResolver resolver = getUserResourceResolver(userName, userPass)){
     
             Session session = resolver.adaptTo(Session.class);     
 
