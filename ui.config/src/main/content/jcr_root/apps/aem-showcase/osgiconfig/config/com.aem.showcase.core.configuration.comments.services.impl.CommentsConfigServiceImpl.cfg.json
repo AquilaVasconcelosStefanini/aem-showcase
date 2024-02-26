@@ -1,0 +1,4 @@
+{
+    "sessionUserName": "$[env:server_username;default=admin]",
+    "sessionUserPass": "$[secret:server_password;default=admin]"
+}
